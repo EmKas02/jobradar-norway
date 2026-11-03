@@ -70,6 +70,7 @@ jobradar sync --days 14     # NAV + company boards + remote; later NAV runs cont
 jobradar sync --source companies   # or just one source: nav, companies, remote
 jobradar finn               # import saved FINN ads
 jobradar finn --paste       # save the FINN ad copied with the bookmarklet, then import
+jobradar finn --mail        # add jobs from FINN's alert emails in Mail.app
 jobradar report             # writes reports/jobs-<date>.md
 jobradar mark 11f6bf12 applied --note "sent via company site"
 jobradar tracker

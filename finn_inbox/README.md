@@ -15,3 +15,7 @@ Data Analyst - Example AS - Stavanger
 3. Run `jobradar finn` and then `jobradar report`.
 
 `.txt` files in this folder are git-ignored.
+
+## From FINN's alert emails (macOS Mail)
+
+`jobradar finn --mail` reads only FINN's job alert emails (sender `inspirasjon.finn.no`) from the last 14 days (`--days N` to change) and adds each job with its employer, title and teaser. The links are FINN's tracking redirects; jobradar stores them but never opens them. Open the promising ones yourself and use the bookmarklet to add the full ad text.

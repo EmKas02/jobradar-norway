@@ -115,6 +115,12 @@ def cmd_finn(args, store: Store) -> None:
         clipboard = subprocess.run(["pbpaste"], capture_output=True, text=True).stdout
         path = finn.save_pasted_ad(clipboard, args.inbox)
         print(f"Saved {path.name}")
+    if args.mail:
+        alerts = {r["uuid"]: r for raw in finn.mail_alert_sources(args.days) for r in finn.parse_alert_email(raw)}
+        for row in alerts.values():
+            if not store.has_ad(row["uuid"]):
+                store.upsert_ad(row)
+        print(f"Read FINN alert emails from the last {args.days} days: {len(alerts)} jobs")
     ads = finn.load_inbox(args.inbox)
     for ad in ads:
         store.upsert_ad(ad)
@@ -164,6 +170,8 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("finn", help="import FINN ads saved in the inbox folder")
     p.add_argument("--inbox", type=Path, default=ROOT / "finn_inbox")
     p.add_argument("--paste", action="store_true", help="first save the ad copied with the bookmarklet (macOS clipboard)")
+    p.add_argument("--mail", action="store_true", help="also add jobs from FINN alert emails in Mail.app (macOS)")
+    p.add_argument("--days", type=int, default=14, help="with --mail: how far back to read alert emails")
     p.set_defaults(func=cmd_finn)
 
     p = sub.add_parser("report", help="score ads and write a Markdown report")
