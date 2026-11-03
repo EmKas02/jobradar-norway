@@ -73,8 +73,12 @@ def sync_remote(config: dict, store: Store) -> None:
         return
     print("Reading Himalayas remote jobs (entry level, open to Norway)...")
     rows = sources.himalayas(himalayas["queries"])
+    print(f"  Checking {len(rows)} jobs against the companies' own postings...")
+    rows, dropped = sources.verify_remote_jobs(rows)
+    for row, where in dropped:
+        print(f"  dropped: {row['title']} ({row['employer']}) - company posting is {where}")
     stored, removed = store.replace_source("himalayas", rows)
-    print(f"  Himalayas: kept {stored}, removed {removed}")
+    print(f"  Himalayas: kept {stored}, dropped {len(dropped)} not open to Norway, removed {removed} closed")
 
 
 def sync_nav(args, store: Store) -> None:

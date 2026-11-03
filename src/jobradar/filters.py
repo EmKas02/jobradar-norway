@@ -69,9 +69,15 @@ def mentions_rogaland(location: str | None) -> bool:
     return bool(location) and bool(_ROGALAND_PATTERN.search(location))
 
 
+_NO_PLACE_WORDS = re.compile(r"\b(remote|virtual|fully|work from home|home based|anywhere|location|flexible)\b|[^\w]+", re.IGNORECASE)
+
+
 def remote_open_to_norway(location: str | None) -> bool:
-    """A remote job with no location limit, or one that names Norway or a wider region."""
-    return not location or bool(_NORWAY_OK_PATTERN.search(location))
+    """A remote job with no location limit ("Remote", "Virtual"), or one that names
+    Norway or a wider region that includes it."""
+    if not location or not _NO_PLACE_WORDS.sub("", location):
+        return True
+    return bool(_NORWAY_OK_PATTERN.search(location))
 
 
 _NO_WORDS = {"og", "er", "du", "vi", "til", "med", "som", "på", "ikke", "har", "deg", "oss", "av", "kan", "det", "en", "et", "å", "eller", "hos"}

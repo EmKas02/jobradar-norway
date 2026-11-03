@@ -24,7 +24,7 @@ flowchart LR
 - **Sync**: reads [NAV's job vacancy feed](https://navikt.github.io/pam-stilling-feed/) incrementally. The feed is a change log, so the latest item per ad decides its status. Ads that become inactive are deleted, as NAV's terms of use require.
 - **Filter**: every Rogaland ad is kept; ads elsewhere are kept only if the title looks data-related and the text says the role is fully remote.
 - **Company boards**: reads the public job feeds of the applicant tracking systems that companies use (configured in [sources.yaml](sources.yaml)). Each sync is a full snapshot, so closed jobs disappear.
-- **Remote**: searches the [Himalayas](https://himalayas.app) remote jobs API for entry-level data roles open to people in Norway.
+- **Remote**: searches the [Himalayas](https://himalayas.app) remote jobs API for entry-level data roles open to people in Norway. Because job boards sometimes get locations wrong, each job is checked against the company's own posting (Lever, Greenhouse, Ashby or Workable) when it can be found; jobs whose posting is limited to other countries are dropped, and the rest are marked *verified* or *unverified*.
 - **Score**: each ad gets a 0-100 score that is easy to explain (see below).
 - **Report**: writes `reports/jobs-YYYY-MM-DD.md` with separate Rogaland and remote tables, the skills each ad matched, warning flags, and which CV to send (Norwegian or English, from the ad's language).
 - **Track**: `jobradar mark <id> applied` keeps a simple record of each application's status.

@@ -24,3 +24,28 @@ def test_teamtailor_parse_and_keep(monkeypatch):
     assert rows[1]["remote"] == 1
     assert [sources.keep_company_job(r) for r in rows] == [True, True, False]
     assert len({r["uuid"] for r in rows}) == 3
+
+
+def test_slug_candidates():
+    assert sources.slug_candidates("European Payments Initiative (EPI)") == [
+        "europeanpaymentsinitiative", "european-payments-initiative", "european", "epi"]
+    assert sources.slug_candidates("Banco Plata, S.A.")[0] == "bancoplata"
+
+
+def test_verify_remote_jobs(monkeypatch):
+    postings = {
+        "portcast": [{"title": "Data Analyst Intern", "location": "Singapore, Bangalore, Manila"}],
+        "acme": [{"title": "Junior Data Analyst", "location": "Remote - Europe"}],
+    }
+    monkeypatch.setattr(sources, "ADAPTERS", {
+        ats: (lambda c: postings.get(c["slug"], [])) for ats in sources.VERIFY_ATS})
+    rows = [
+        {"title": "Data Analyst Intern", "employer": "Portcast", "location": "Remote (open to Norway)"},
+        {"title": "Junior Data Analyst", "employer": "Acme", "location": "Remote (open to Norway)"},
+        {"title": "Data Scientist", "employer": "Unknown Co", "location": "Remote (worldwide)"},
+    ]
+    kept, dropped = sources.verify_remote_jobs(rows)
+    assert [r["employer"] for r in kept] == ["Acme", "Unknown Co"]
+    assert kept[0]["location"] == "Remote (verified: Remote - Europe)"
+    assert kept[1]["location"].endswith("unverified")
+    assert dropped[0][0]["employer"] == "Portcast"

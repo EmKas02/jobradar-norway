@@ -6,8 +6,10 @@ Sites that forbid automated access - such as FINN.no - are not fetched.
 """
 from __future__ import annotations
 
+import difflib
 import hashlib
 import html
+import re
 import time
 import urllib.robotparser
 import xml.etree.ElementTree as ET
@@ -47,6 +49,11 @@ def fetch(url: str, **params) -> requests.Response | None:
         print(f"  skipped (robots.txt disallows): {url}")
         return None
     resp = _session.get(url, params=params or None, timeout=30)
+    if resp.status_code == 429:
+        # Rate limited: wait as asked (capped) and try once more.
+        retry_after = resp.headers.get("Retry-After", "")
+        time.sleep(min(int(retry_after), 30) if retry_after.isdigit() else 10)
+        resp = _session.get(url, params=params or None, timeout=30)
     resp.raise_for_status()
     time.sleep(0.5)
     return resp
@@ -214,3 +221,65 @@ def himalayas(queries: list[str], seniority: str = "Entry-level", max_pages: int
             if len(jobs) < 20:
                 break
     return list(rows.values())
+
+
+# --- Checking remote-board jobs against the company's own posting ---
+#
+# Job boards sometimes list a job as "open to Norway" when the company's own
+# posting only hires in certain countries. When we can find the same job on the
+# company's applicant tracking system, its locations decide.
+
+VERIFY_ATS = ("lever", "greenhouse", "ashby", "workable")
+
+
+def slug_candidates(company: str) -> list[str]:
+    """Likely ATS account names for a company, e.g. 'European Payments Initiative (EPI)'
+    -> ['europeanpaymentsinitiative', 'european-payments-initiative', 'european', 'epi']."""
+    base = re.sub(r"\(.*?\)|,.*$", "", company).lower()
+    words = re.findall(r"[a-z0-9]+", base)
+    cands = ["".join(words), "-".join(words), words[0] if words else ""]
+    cands += [re.sub(r"[^a-z0-9]", "", inner.lower()) for inner in re.findall(r"\((.*?)\)", company)]
+    seen = []
+    for c in cands:
+        if len(c) >= 3 and c not in seen:
+            seen.append(c)
+    return seen
+
+
+def _same_title(a: str, b: str) -> float:
+    norm = lambda t: " ".join(re.findall(r"[a-z0-9]+", t.lower()))
+    return difflib.SequenceMatcher(None, norm(a), norm(b)).ratio()
+
+
+def find_company_posting(company: str, title: str, cache: dict) -> dict | None:
+    """The company's own posting for this job, or None if we can't find it."""
+    for slug in slug_candidates(company):
+        for ats in VERIFY_ATS:
+            key = (ats, slug)
+            if key not in cache:
+                try:
+                    cache[key] = ADAPTERS[ats]({"name": company, "slug": slug})
+                except (requests.RequestException, ValueError, KeyError):
+                    cache[key] = []
+            best = max(cache[key], key=lambda r: _same_title(r["title"], title), default=None)
+            if best and _same_title(best["title"], title) >= 0.8:
+                return best
+    return None
+
+
+def verify_remote_jobs(rows: list[dict]) -> tuple[list[dict], list[tuple[dict, str]]]:
+    """Keep jobs whose company posting is open to Norway (or that we can't check);
+    drop the ones whose company posting is limited to other places."""
+    cache: dict = {}
+    kept, dropped = [], []
+    for row in rows:
+        posting = find_company_posting(row["employer"], row["title"], cache)
+        if posting is None:
+            row["location"] += ", unverified"
+            kept.append(row)
+        elif remote_open_to_norway(posting["location"]):
+            row["location"] = f"Remote (verified: {posting['location'] or 'anywhere'})"
+            kept.append(row)
+        else:
+            dropped.append((row, posting["location"]))
+    return kept, dropped

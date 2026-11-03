@@ -42,6 +42,11 @@ def test_remote_open_to_norway():
     assert remote_open_to_norway("Remote - Europe")
     assert remote_open_to_norway("Oslo")
     assert not remote_open_to_norway("Remote in the United States")
+    assert remote_open_to_norway("Remote")
+    assert remote_open_to_norway("Virtual")
+    assert not remote_open_to_norway("USA (remote)")
+    assert not remote_open_to_norway("Singapore, Bangalore, Manila")
+    assert not remote_open_to_norway("Remote-First in France, Remote-First in Netherlands")
 
 
 def test_detect_language():
