@@ -1,6 +1,7 @@
 """Render scored ads as a Markdown report, with Rogaland and remote jobs apart."""
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from .filters import detect_language, mentions_rogaland
@@ -11,6 +12,14 @@ CV = {"no": "NO", "en": "EN"}
 
 def _cell(text: str | None) -> str:
     return (text or "").replace("|", "/").replace("\n", " ")
+
+
+def _link(text: str | None, url: str | None) -> str:
+    """Markdown link from feed data: escape the text and allow only http(s) URLs."""
+    label = re.sub(r"([\\`*_\[\]<>])", r"\\\1", _cell(text))
+    if url and re.match(r"https?://[^\s()<>]+$", url):
+        return f"[{label}]({url})"
+    return label
 
 
 def _source(source: str) -> str:
@@ -31,7 +40,7 @@ def _table(scored: list[tuple[dict, Match]]) -> list[str]:
         place = "Remote" if ad["remote"] and not ad["location"] else _cell(ad["location"])
         status = f" **[{ad['status']}]**" if ad.get("status") else ""
         lines.append(
-            f"| {m.score} | [{_cell(ad['title'])}]({ad['url']}){status} | {_cell(ad['employer'])} "
+            f"| {m.score} | {_link(ad['title'], ad['url'])}{status} | {_cell(ad['employer'])} "
             f"| {place} | {_cell(ad['due'])} | {CV[detect_language(ad['title'] + ' ' + ad['text'])]} "
             f"| {', '.join(m.flags)} | `{ad['uuid'][:8]}` |"
         )
@@ -59,9 +68,9 @@ def render(scored: list[tuple[dict, Match]], top: int) -> str:
     ]
     for ad, m in local + remote:
         lines += [
-            f"### {m.score} - {ad['title']} ({ad['employer']})",
-            f"- Source: {_source(ad['source'])} - [ad]({ad['url']})"
-            + (f" - [apply]({ad['apply_url']})" if ad["apply_url"] and ad["apply_url"] != ad["url"] else ""),
+            f"### {m.score} - {_cell(ad['title'])} ({_cell(ad['employer'])})",
+            f"- Source: {_source(ad['source'])} - {_link('ad', ad['url'])}"
+            + (f" - {_link('apply', ad['apply_url'])}" if ad["apply_url"] and ad["apply_url"] != ad["url"] else ""),
             f"- Matched skills: {', '.join(m.skills) or 'none'}",
             f"- Flags: {', '.join(m.flags) or 'none'}",
             "",

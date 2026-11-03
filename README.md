@@ -78,11 +78,14 @@ jobradar tracker
 
 The public NAV token is fetched automatically and rotates. For regular use, NAV gives out free private tokens (see their docs); set it as `NAV_FEED_TOKEN`.
 
-## Tests
+## Tests and security checks
 
 ```bash
 pytest
+pip-audit --skip-editable   # known vulnerabilities in dependencies
 ```
+
+Ad text comes from outside sources, so SQL values are parameterised, column names are allowlisted, YAML is loaded with `safe_load`, and report links accept only http(s) URLs. The NAV token is fetched at runtime or read from the `NAV_FEED_TOKEN` environment variable, never stored in the repo.
 
 ## Roadmap
 

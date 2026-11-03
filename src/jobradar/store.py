@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
 STATUSES = ("saved", "applied", "interview", "offer", "rejected", "ignored")
+AD_COLUMNS = {"uuid", "source", "title", "employer", "location", "remote", "url", "apply_url",
+              "due", "published", "expires", "text", "fetched_at"}
 
 
 def now_iso() -> str:
@@ -59,6 +61,10 @@ class Store:
 
     def upsert_ad(self, ad: dict) -> None:
         ad = {**ad, "fetched_at": now_iso()}
+        # Column names are interpolated into the SQL, so only known columns are allowed.
+        unknown = set(ad) - AD_COLUMNS
+        if unknown:
+            raise ValueError(f"unknown ad fields: {sorted(unknown)}")
         cols = ", ".join(ad)
         marks = ", ".join(f":{k}" for k in ad)
         self.db.execute(f"INSERT OR REPLACE INTO ads ({cols}) VALUES ({marks})", ad)
