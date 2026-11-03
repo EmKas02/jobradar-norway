@@ -1,0 +1,27 @@
+# Copy to profile.yaml (git-ignored) and edit.
+summary: >
+  Final-year applied data science student looking for a junior data analyst,
+  data scientist or BI role. Experienced with Python, pandas, SQL and Power BI,
+  exploratory data analysis and data visualisation.
+
+# skill name -> words that count as a mention (Norwegian and English).
+# Avoid words that appear in almost every ad, such as languages.
+skills:
+  python: [python]
+  sql: [sql]
+  power bi: [power bi, powerbi]
+  pandas: [pandas]
+  jupyter: [jupyter]
+  excel: [excel]
+  statistics: [statistics, statistikk, statistisk]
+  data analysis: [data analysis, dataanalyse, data analytics, analytics]
+  visualisation: [visualisation, visualization, visualisering, dashboard, dashboards]
+  machine learning: [machine learning, maskinlæring]
+  api: [api, apis]
+  git: [git, github]
+
+# languages you can work in; ads that require another language are marked down
+languages: [english, norwegian]
+
+# number of skill matches that counts as full coverage
+skill_target: 5
