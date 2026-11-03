@@ -1,0 +1,28 @@
+# Company career boards with public job feeds.
+# Jobs are kept if they are in Rogaland, or remote and open to people in Norway.
+# To add a company, find which system its careers page uses and add it below.
+companies:
+  # Stavanger-region offices
+  - {name: Knowit, ats: teamtailor, host: careernorway.knowit.no}
+  - {name: Schibsted (incl. Stavanger Aftenblad), ats: teamtailor, host: schibsted.teamtailor.com}
+  - {name: Kongsberg Digital, ats: teamtailor, host: kongsbergdigital.teamtailor.com}
+  - {name: Itera, ats: teamtailor, host: itera.teamtailor.com}
+  - {name: Fjordkraft, ats: teamtailor, host: fjordkraft.teamtailor.com}
+  - {name: Aize, ats: teamtailor, host: aize.teamtailor.com}
+  # Norwegian tech companies that sometimes hire remotely
+  - {name: Cognite, ats: greenhouse, slug: cognite}
+  - {name: Tibber, ats: teamtailor, host: tibber.teamtailor.com}
+  - {name: Computas, ats: teamtailor, host: computas.teamtailor.com}
+  - {name: Kahoot!, ats: workable, slug: kahoot}
+  - {name: Crayon, ats: workable, slug: crayon}
+  - {name: Sanity, ats: ashby, slug: sanity}
+
+# Remote job boards (searched for entry-level roles open to Norway)
+remote:
+  himalayas:
+    queries: [data analyst, data scientist, data engineer, business intelligence, machine learning, analytics]
+
+# Large Stavanger employers that post mainly on FINN.no or their own portals
+# (Equinor, Aker BP, Lyse, SpareBank 1 Sør-Norge, Vår Energi, ConocoPhillips):
+# follow them on FINN and use the FINN inbox. ConocoPhillips' Workday site
+# disallows automated access in robots.txt, so it is not fetched.
