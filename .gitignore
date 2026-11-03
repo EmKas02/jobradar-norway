@@ -1,0 +1,10 @@
+# Personal data and fetched ads stay local
+profile.yaml
+data/
+reports/
+finn_inbox/*.txt
+
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
