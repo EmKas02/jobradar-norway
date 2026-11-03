@@ -69,6 +69,7 @@ cp profile.example.yaml profile.yaml   # edit your summary and skills
 jobradar sync --days 14     # NAV + company boards + remote; later NAV runs continue from the last sync
 jobradar sync --source companies   # or just one source: nav, companies, remote
 jobradar finn               # import saved FINN ads
+jobradar finn --paste       # save the FINN ad copied with the bookmarklet, then import
 jobradar report             # writes reports/jobs-<date>.md
 jobradar mark 11f6bf12 applied --note "sent via company site"
 jobradar tracker
