@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml
 
-from . import finn, report, sources
+from . import finn, linkedin, report, sources
 from .filters import is_remote, is_rogaland, strip_html, title_is_relevant
 from .matcher import Matcher
 from .nav import NavFeed, latest_by_uuid
@@ -144,12 +144,21 @@ def cmd_finn(args, store: Store) -> None:
     print(f"Imported {len(ads)} FINN ads from {args.inbox}/")
 
 
+def cmd_linkedin(args, store: Store) -> None:
+    rows = linkedin.load_alerts(args.days)
+    new = [r for r in rows if not store.has_ad(r["uuid"])]
+    for row in new:
+        store.upsert_ad(row)
+    print(f"Read LinkedIn job emails from the last {args.days} days: {len(rows)} jobs, {len(new)} new")
+
+
 def cmd_report(args, store: Store) -> None:
     ads = [a for a in store.active_ads() if a.get("status") not in ("ignored", "rejected")]
-    # FINN alert emails often repeat ads the FINN search already found; keep the fuller copy.
+    # Alert emails often repeat ads another source already found; keep the fuller copy.
+    from_mail = ("finn-mail", "linkedin-mail")
     key = lambda a: (re.sub(r"\W+", "", a["employer"].lower()), re.sub(r"\W+", "", a["title"].lower()))
-    searched = {key(a) for a in ads if a["source"] != "finn-mail"}
-    ads = [a for a in ads if a["source"] != "finn-mail" or key(a) not in searched]
+    fuller = {key(a) for a in ads if a["source"] not in from_mail}
+    ads = [a for a in ads if a["source"] not in from_mail or key(a) not in fuller]
     matcher = Matcher(load_profile(args.profile))
     scored = sorted(zip(ads, matcher.score_many(ads)), key=lambda p: p[1].score, reverse=True)
     scored = [(a, m) for a, m in scored if m.score >= args.min_score]
@@ -194,6 +203,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--mail", action="store_true", help="also add jobs from FINN alert emails in Mail.app (macOS)")
     p.add_argument("--days", type=int, default=14, help="with --mail: how far back to read alert emails")
     p.set_defaults(func=cmd_finn)
+
+    p = sub.add_parser("linkedin", help="add jobs from LinkedIn's job alert emails in Mail.app (macOS)")
+    p.add_argument("--days", type=int, default=14, help="how far back to read alert emails")
+    p.set_defaults(func=cmd_linkedin)
 
     p = sub.add_parser("report", help="score ads and write a Markdown report")
     p.add_argument("--profile", type=Path, default=ROOT / "profile.yaml")

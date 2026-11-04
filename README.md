@@ -52,6 +52,7 @@ It's deliberately rule-based so every score can be explained. A next step is to 
 |---|---|---|
 | NAV job vacancy feed | Official API, free token | Inactive ads are deleted, as the terms require |
 | Company boards | Public ATS job feeds | Every request is checked against robots.txt first |
+| LinkedIn | Your job alert emails only | LinkedIn forbids scraping, so linkedin.com is never opened. `jobradar linkedin` reads LinkedIn's alert and recommendation emails in Mail.app |
 | Himalayas | Public API | Credited in reports; applications go through its `applicationLink` |
 | FINN.no | Job search, with written permission | FINN's terms forbid automated use without consent; FINN allowed it for a personal, non-commercial job search. Only job search and ad pages, 3 s between requests, at most 40 new ad pages per run, and an off switch in `sources.yaml` |
 
@@ -71,6 +72,7 @@ jobradar sync --source finn        # or just one source: nav, finn, companies, r
 jobradar finn               # import saved FINN ads
 jobradar finn --paste       # save the FINN ad copied with the bookmarklet, then import
 jobradar finn --mail        # add jobs from FINN's alert emails in Mail.app
+jobradar linkedin           # add jobs from LinkedIn's job alert emails in Mail.app
 jobradar report             # writes reports/jobs-<date>.md
 jobradar mark 11f6bf12 applied --note "sent via company site"
 jobradar tracker

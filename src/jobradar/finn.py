@@ -127,12 +127,19 @@ _SEP = "=====JOBRADAR-MESSAGE====="
 
 
 def mail_alert_sources(days: int) -> list[bytes]:
-    """Raw source of FINN job alert emails from the last `days` days in Mail.app.
-    Only messages from FINN's alert sender are read; nothing else is touched."""
+    """Raw source of FINN job alert emails from the last `days` days in Mail.app."""
+    return mail_sources(days, "inspirasjon.finn.no")
+
+
+def mail_sources(days: int, sender: str) -> list[bytes]:
+    """Raw source of inbox emails from `sender` received in the last `days` days.
+    Only messages from that sender are read; nothing else in the mailbox is touched."""
+    if not re.fullmatch(r"[\w.@-]+", sender):
+        raise ValueError(f"unexpected sender: {sender!r}")
     script = f'''
     tell application "Mail"
         set cutoff to (current date) - ({int(days)} * days)
-        set msgs to (messages of inbox whose sender contains "inspirasjon.finn.no" and date received > cutoff)
+        set msgs to (messages of inbox whose sender contains "{sender}" and date received > cutoff)
         set out to ""
         repeat with m in msgs
             set out to out & (source of m) & "{_SEP}"
