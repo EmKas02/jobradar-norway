@@ -1,6 +1,6 @@
 # jobradar-norway
 
-A small data pipeline that finds and ranks data jobs in Rogaland, plus remote roles open to people in Norway. It combines NAV's official job vacancy feed, company career boards, the Himalayas remote job API and ads I save from FINN.no.
+A small data pipeline that finds and ranks data jobs in Rogaland, plus remote roles open to people in Norway. It combines NAV's official job vacancy feed, FINN.no's job search (with FINN's permission), company career boards and the Himalayas remote job API.
 
 I built it for my own job search as a final-year applied data science student, and as a practical exercise in working with a real API, cleaning messy text and building an explainable scoring model.
 
@@ -53,11 +53,11 @@ It's deliberately rule-based so every score can be explained. A next step is to 
 | NAV job vacancy feed | Official API, free token | Inactive ads are deleted, as the terms require |
 | Company boards | Public ATS job feeds | Every request is checked against robots.txt first |
 | Himalayas | Public API | Credited in reports; applications go through its `applicationLink` |
-| FINN.no | Manual inbox only | FINN forbids automated crawling, so finn.no is never fetched |
+| FINN.no | Job search, with written permission | FINN's terms forbid automated use without consent; FINN allowed it for a personal, non-commercial job search. Only job search and ad pages, 3 s between requests, at most 40 new ad pages per run, and an off switch in `sources.yaml` |
 
-Several large Stavanger employers (Equinor, Aker BP, Lyse, SpareBank 1 Sør-Norge, Vår Energi) post mainly on FINN or their own portals. I follow them on FINN and save ads to `finn_inbox/` (format in [finn_inbox/README.md](finn_inbox/README.md)). ConocoPhillips' Workday site disallows automated access in robots.txt, so it is skipped.
+Several large Stavanger employers (Equinor, Aker BP, Lyse, SpareBank 1 Sør-Norge, Vår Energi) post mainly on FINN, so the FINN search matters most for local jobs. FINN's alert emails and a manual inbox ([finn_inbox/README.md](finn_inbox/README.md)) are also supported. ConocoPhillips' Workday site disallows automated access in robots.txt, so it is skipped.
 
-On 3 Nov 2026 a full sync kept ~490 NAV ads, 15 company-board jobs and 45 remote jobs.
+On 4 Nov 2026 a full sync kept ~490 NAV ads, 110 FINN ads, 15 company-board jobs and 44 remote jobs.
 
 ## Usage
 
@@ -67,7 +67,7 @@ pip install -e ".[dev]"
 cp profile.example.yaml profile.yaml   # edit your summary and skills
 
 jobradar sync --days 14     # NAV + company boards + remote; later NAV runs continue from the last sync
-jobradar sync --source companies   # or just one source: nav, companies, remote
+jobradar sync --source finn        # or just one source: nav, finn, companies, remote
 jobradar finn               # import saved FINN ads
 jobradar finn --paste       # save the FINN ad copied with the bookmarklet, then import
 jobradar finn --mail        # add jobs from FINN's alert emails in Mail.app

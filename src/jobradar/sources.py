@@ -2,13 +2,15 @@
 
 Only sources with public, documented feeds are used (ATS job feeds and job
 board APIs), and every request is checked against the host's robots.txt.
-Sites that forbid automated access - such as FINN.no - are not fetched.
+FINN.no is the exception: its terms forbid automated use without written
+consent, which FINN gave for personal job searching (see finn_search below).
 """
 from __future__ import annotations
 
 import difflib
 import hashlib
 import html
+import json
 import re
 import time
 import urllib.robotparser
@@ -283,3 +285,98 @@ def verify_remote_jobs(rows: list[dict]) -> tuple[list[dict], list[tuple[dict, s
         else:
             dropped.append((row, posting["location"]))
     return kept, dropped
+
+
+# --- FINN.no job search ---
+#
+# FINN gave written permission (Nov 2026) to search job listings for a personal,
+# non-commercial job search, as long as it doesn't load their site. So: only
+# /job/search and /job/ad pages, a few searches per run, a pause between every
+# request, and full ad pages only for ads we haven't seen before.
+
+FINN_SEARCH = "https://www.finn.no/job/search"
+FINN_AD = "https://www.finn.no/job/ad/{}"
+_FINN_CARD = re.compile(r'<article[^>]*\bid="(\d+)"(.*?)</article>', re.S)
+
+
+def _text(fragment: str | None) -> str:
+    return html.unescape(re.sub(r"<!-- -->|<[^>]+>", "", fragment or "")).strip()
+
+
+def parse_finn_search(page: str) -> list[dict]:
+    """Job cards on a FINN search results page."""
+    cards = []
+    for ad_id, body in _FINN_CARD.findall(page):
+        title = re.search(r'id="card-anchor-\d+"[^>]*>(.*?)</a>', body, re.S)
+        if not title:
+            continue
+        company = re.search(r"<strong>(.*?)</strong>", body, re.S)
+        place = re.search(r'<span class="block truncate">(.*?)</span>', body, re.S)
+        published = re.search(r'dateTime="([^"]+)"', body)
+        cards.append({
+            "id": ad_id,
+            "title": _text(title.group(1)),
+            "employer": _text(company.group(1) if company else ""),
+            "location": _text(place.group(1) if place else ""),
+            "published": published.group(1) if published else "",
+        })
+    return cards
+
+
+def parse_finn_ad(page: str) -> dict:
+    """Description, employer, place, deadline and remote status from a FINN ad page."""
+    info: dict = {}
+    for raw in re.findall(r'<script type="application/ld\+json"[^>]*>(.*?)</script>', page, re.S):
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        data = data.get("script:ld+json", data)
+        if data.get("@type") == "JobPosting":
+            address = (data.get("jobLocation") or {}).get("address") or {}
+            info = {
+                "title": data.get("title") or "",
+                "employer": (data.get("hiringOrganization") or {}).get("name", ""),
+                "location": address.get("addressLocality", ""),
+                "text": strip_html(data.get("description")),
+                "expires": data.get("validThrough") or "",
+            }
+            break
+    # The deadline is the first text after the "Søknadsfrist" label, across any tags.
+    due = re.search(r"Søknadsfrist(?:\s|<!-- -->|<[^>]+>)*([^<]{2,40}?)\s*<", page)
+    info["due"] = html.unescape(due.group(1)).strip() if due else ""
+    info["remote"] = "Kun hjemmekontor" in page
+    return info
+
+
+def finn_search(config: dict, known: dict[str, dict]) -> list[dict]:
+    """Search FINN for each query in config and return a full snapshot of matching ads.
+    `known` maps uuid -> stored row, so ads seen before are not fetched again."""
+    delay = float(config.get("delay_seconds", 3))
+    budget = int(config.get("max_new_ads", 40))
+    cards: dict[str, dict] = {}
+    for query in config["queries"]:
+        resp = fetch(FINN_SEARCH, q=query, location=config["location"])
+        time.sleep(delay)
+        for card in parse_finn_search(resp.text if resp else ""):
+            cards.setdefault(card["id"], card)
+
+    rows = []
+    for ad_id, card in cards.items():
+        uuid = hashlib.sha1(f"finn|{ad_id}".encode()).hexdigest()[:16]
+        if uuid in known and known[uuid].get("text"):
+            rows.append(known[uuid])
+            continue
+        row = _row("finn", ad_id, title=card["title"], employer=card["employer"],
+                   location=card["location"], url=FINN_AD.format(ad_id), apply_url=FINN_AD.format(ad_id),
+                   published=card["published"])
+        row["uuid"] = uuid
+        if budget > 0:
+            budget -= 1
+            resp = fetch(FINN_AD.format(ad_id))
+            time.sleep(delay)
+            details = parse_finn_ad(resp.text) if resp else {}
+            row.update({k: v for k, v in details.items() if v not in ("", None)})
+            row["remote"] = int(bool(details.get("remote")))
+        rows.append(row)
+    return rows

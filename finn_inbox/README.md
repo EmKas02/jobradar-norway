@@ -1,6 +1,6 @@
 # FINN inbox
 
-FINN.no does not allow automated crawling, so jobradar never fetches finn.no.
+`jobradar sync` searches FINN itself (with FINN's permission, see the main README). This inbox is for ads you want to add by hand, for example from other regions.
 
 1. On finn.no/job, search for e.g. `data` in Rogaland, then **Lagre søk** and turn on email alerts.
    Also follow the big local employers that post mainly on FINN: Equinor, Aker BP, Lyse, SpareBank 1 Sør-Norge, Vår Energi.

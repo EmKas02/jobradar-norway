@@ -22,6 +22,15 @@ remote:
   himalayas:
     queries: [data analyst, data scientist, data engineer, business intelligence, machine learning, analytics]
 
+# FINN.no job search, used with FINN's written permission (Nov 2026) for a personal,
+# non-commercial job search. Keep the load low; set enabled: false if FINN asks you to stop.
+finn:
+  enabled: true
+  location: "1.20001.20012"   # Rogaland
+  queries: [data, analytiker, power bi, python, maskinlæring, KI, nyutdannet, trainee, sommerstudent, business intelligence]
+  delay_seconds: 3            # pause between every request to finn.no
+  max_new_ads: 40             # full ad pages fetched per run (only ads not seen before)
+
 # Large Stavanger employers that post mainly on FINN.no or their own portals
 # (Equinor, Aker BP, Lyse, SpareBank 1 Sør-Norge, Vår Energi, ConocoPhillips):
 # follow them on FINN and use the FINN inbox. ConocoPhillips' Workday site

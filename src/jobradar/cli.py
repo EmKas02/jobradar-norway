@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -45,8 +46,10 @@ def nav_ad_to_row(ad: dict) -> dict:
 def cmd_sync(args, store: Store) -> None:
     if args.source in ("all", "nav"):
         sync_nav(args, store)
-    if args.source in ("all", "companies", "remote"):
+    if args.source in ("all", "companies", "remote", "finn"):
         config = yaml.safe_load(args.sources.read_text(encoding="utf-8"))
+    if args.source in ("all", "finn"):
+        sync_finn(config, store)
     if args.source in ("all", "companies"):
         sync_companies(config, store)
     if args.source in ("all", "remote"):
@@ -65,6 +68,16 @@ def sync_companies(config: dict, store: Store) -> None:
         if rows:
             stored, removed = store.replace_source(rows[0]["source"], kept)
             print(f"  {company['name']}: {len(rows)} jobs, kept {stored}, removed {removed}")
+
+
+def sync_finn(config: dict, store: Store) -> None:
+    finn_cfg = config.get("finn") or {}
+    if not finn_cfg.get("enabled"):
+        return
+    print(f"Searching FINN ({len(finn_cfg['queries'])} searches, {finn_cfg.get('delay_seconds', 3)}s between requests)...")
+    rows = sources.finn_search(finn_cfg, store.ads_by_source("finn"))
+    stored, removed = store.replace_source("finn", rows)
+    print(f"  FINN: {stored} ads in Rogaland, removed {removed} no longer listed")
 
 
 def sync_remote(config: dict, store: Store) -> None:
@@ -133,6 +146,10 @@ def cmd_finn(args, store: Store) -> None:
 
 def cmd_report(args, store: Store) -> None:
     ads = [a for a in store.active_ads() if a.get("status") not in ("ignored", "rejected")]
+    # FINN alert emails often repeat ads the FINN search already found; keep the fuller copy.
+    key = lambda a: (re.sub(r"\W+", "", a["employer"].lower()), re.sub(r"\W+", "", a["title"].lower()))
+    searched = {key(a) for a in ads if a["source"] != "finn-mail"}
+    ads = [a for a in ads if a["source"] != "finn-mail" or key(a) not in searched]
     matcher = Matcher(load_profile(args.profile))
     scored = sorted(zip(ads, matcher.score_many(ads)), key=lambda p: p[1].score, reverse=True)
     scored = [(a, m) for a, m in scored if m.score >= args.min_score]
@@ -166,7 +183,7 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("sync", help="pull new ads from NAV, company boards and remote boards")
-    p.add_argument("--source", choices=("all", "nav", "companies", "remote"), default="all")
+    p.add_argument("--source", choices=("all", "nav", "companies", "remote", "finn"), default="all")
     p.add_argument("--sources", type=Path, default=ROOT / "sources.yaml", help="company and remote board config")
     p.add_argument("--days", type=int, help="NAV: look back N days instead of since last sync")
     p.set_defaults(func=cmd_sync)

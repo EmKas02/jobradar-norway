@@ -1,8 +1,9 @@
 """Import FINN.no ads from a local inbox folder.
 
-FINN's terms forbid automated crawling, so this tool never fetches finn.no.
-Instead, set up a saved search with email alerts on FINN, and when an ad looks
-interesting, save it as a .txt file in the inbox:
+The main FINN source is the job search in sources.py (finn_search), used with
+FINN's written permission. This module covers the other ways in: ads you save
+by hand, the bookmarklet, and FINN's alert emails. To save an ad by hand, put a
+.txt file in the inbox:
 
     line 1: the ad URL
     line 2: Title - Employer - Location

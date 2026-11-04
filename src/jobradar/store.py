@@ -86,6 +86,10 @@ class Store:
             self.delete_ad(uuid)
         return len(rows), len(gone)
 
+    def ads_by_source(self, source: str) -> dict[str, dict]:
+        rows = self.db.execute("SELECT * FROM ads WHERE source = ?", (source,)).fetchall()
+        return {r["uuid"]: {k: r[k] for k in r.keys() if k in AD_COLUMNS - {"fetched_at"}} for r in rows}
+
     def active_ads(self) -> list[dict]:
         rows = self.db.execute(
             """SELECT a.*, p.status FROM ads a LEFT JOIN applications p USING (uuid)
